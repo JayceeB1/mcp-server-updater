@@ -139,6 +139,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## ☕ Support Development
+
+If you find this module useful, consider buying me a coffee to support further development!
+
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/jayceeB1)
+
+Your support is greatly appreciated and helps keep this project maintained and improved!
+
 ## 📣 Acknowledgements
 
 This tool was created with the help of Claude, an AI assistant from Anthropic.
