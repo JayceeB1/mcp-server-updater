@@ -11,6 +11,21 @@ $configPath = "$env:APPDATA\Claude\claude_desktop_config.json"
 $logFile = "$env:USERPROFILE\Documents\MCP-Scripts\mcp-updater-log.txt"
 $detailedLogFile = "$env:USERPROFILE\Documents\MCP-Scripts\mcp-detailed-analysis.json"
 
+# Ensure log directory and files exist
+$logDirectory = Split-Path -Path $logFile -Parent
+if (-not (Test-Path -Path $logDirectory -PathType Container)) {
+    Write-Host "Creating log directory: $logDirectory" -ForegroundColor Yellow
+    New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
+}
+if (-not (Test-Path -Path $logFile)) {
+    Write-Host "Creating log file: $logFile" -ForegroundColor Yellow
+    New-Item -Path $logFile -ItemType File -Force | Out-Null
+}
+if (-not (Test-Path -Path $detailedLogFile)) {
+    Write-Host "Creating detailed log file: $detailedLogFile" -ForegroundColor Yellow
+    New-Item -Path $detailedLogFile -ItemType File -Force | Out-Null
+}
+
 # Initialize log file
 if (Test-Path $logFile) {
     Remove-Item $logFile -Force
@@ -339,7 +354,7 @@ function Test-GitRepositoryUpdate {
         return $analysis
     } catch {
         Write-ColorOutput "Error analyzing repository: $_" "Red"
-        Write-Log "Error analyzing $Path: $_" -Level "ERROR"
+        Write-Log "Error analyzing ${Path}: $_" -Level "ERROR"
         
         return @{
             IsGitRepo = $true

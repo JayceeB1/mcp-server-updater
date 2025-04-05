@@ -11,6 +11,21 @@ $configPath = "$env:APPDATA\Claude\claude_desktop_config.json"
 $logFile = "$env:USERPROFILE\Documents\MCP-Scripts\mcp-updater-log.txt"
 $detailedLogFile = "$env:USERPROFILE\Documents\MCP-Scripts\mcp-detailed-analysis.json"
 
+# S'assurer que le répertoire et les fichiers journaux existent
+$logDirectory = Split-Path -Path $logFile -Parent
+if (-not (Test-Path -Path $logDirectory -PathType Container)) {
+    Write-Host "Création du répertoire des journaux : $logDirectory" -ForegroundColor Yellow
+    New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
+}
+if (-not (Test-Path -Path $logFile)) {
+    Write-Host "Création du fichier journal : $logFile" -ForegroundColor Yellow
+    New-Item -Path $logFile -ItemType File -Force | Out-Null
+}
+if (-not (Test-Path -Path $detailedLogFile)) {
+    Write-Host "Création du fichier journal détaillé : $detailedLogFile" -ForegroundColor Yellow
+    New-Item -Path $detailedLogFile -ItemType File -Force | Out-Null
+}
+
 # Initialiser le fichier journal
 if (Test-Path $logFile) {
     Remove-Item $logFile -Force
@@ -339,7 +354,7 @@ function Test-GitRepositoryUpdate {
         return $analysis
     } catch {
         Write-ColorOutput "Erreur lors de l'analyse du repository : $_" "Red"
-        Write-Log "Erreur lors de l'analyse de $Path : $_" -Level "ERROR"
+        Write-Log "Erreur lors de l'analyse de ${Path} : $_" -Level "ERROR"
         
         return @{
             IsGitRepo = $true
