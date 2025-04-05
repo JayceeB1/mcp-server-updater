@@ -139,6 +139,14 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Les contributions sont les bienvenues ! N'hésitez pas à soumettre une Pull Request.
 
+## ☕ Soutenir le développement
+
+Si vous trouvez ce module utile, envisagez de m'offrir un café pour soutenir son développement !
+
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/jayceeB1)
+
+Votre soutien est grandement apprécié et contribue à maintenir et améliorer ce projet !
+
 ## 📣 Remerciements
 
 Cet outil a été créé avec l'aide de Claude, un assistant IA d'Anthropic.
