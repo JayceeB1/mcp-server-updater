@@ -6,13 +6,15 @@ Un outil PowerShell pour analyser et mettre à jour les serveurs Model Context P
 
 ## 🌟 Fonctionnalités
 
-- **Détection automatique des serveurs MCP** : Lit votre configuration Claude Desktop pour trouver tous les serveurs MCP configurés
-- **Analyse intelligente des dépôts** : Détecte les dépôts Git même s'ils sont dans des répertoires parents
-- **Support multi-technologies** : Gère différents types de projets dont Node.js, Python, Go, Java, Rust, .NET et C/C++
-- **Rapports détaillés** : Fournit une analyse complète de tous vos serveurs MCP
-- **Mises à jour sécurisées** : Crée des branches de sauvegarde avant d'appliquer les mises à jour
-- **Processus de build intelligent** : Exécute automatiquement les commandes de build appropriées selon le type de projet
-- **Support de localisation** : Disponible en plusieurs langues (anglais, français)
+- **Détection automatique des serveurs MCP** : Lit votre configuration Claude Desktop pour trouver tous les serveurs MCP configurés.
+- **Analyse intelligente des dépôts** : Détecte les dépôts Git même s'ils sont dans des répertoires parents.
+- **Support multi-technologies** : Gère différents types de projets dont Node.js, Python, Go, Java, Rust, .NET et C/C++.
+- **Rapports détaillés** : Fournit une analyse complète de tous vos serveurs MCP.
+- **Vérification automatique des mises à jour** : Identifie les serveurs avec des mises à jour disponibles.
+- **Mises à jour confirmées par l'utilisateur** : Demande une confirmation avant d'appliquer les mises à jour.
+- **Mises à jour sécurisées** : Met de côté les modifications locales (`git stash`) avant d'appliquer les mises à jour (si des modifications existent).
+- **Processus de build intelligent** : Exécute automatiquement les commandes de build appropriées selon le type de projet après la mise à jour.
+- **Localisation Standardisée** : Utilise le système de localisation standard de PowerShell (fichiers `.psd1`), facilement extensible.
 
 ## 📋 Prérequis
 
@@ -24,112 +26,126 @@ Un outil PowerShell pour analyser et mettre à jour les serveurs Model Context P
 
 ## 🚀 Démarrage rapide
 
-1. Téléchargez la dernière version ou clonez ce dépôt :
-   ```
-   git clone https://github.com/JayceeB1/mcp-server-updater.git
-   ```
-   
-2. Exécutez le script depuis PowerShell :
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\Update-MCP-Servers.ps1
-   ```
-   
-3. Pour activer le mode de mise à jour :
-   ```powershell
-   .\Update-MCP-Servers.ps1 -Update
-   ```
-   
-4. Pour utiliser une langue spécifique :
-   ```powershell
-   .\Update-MCP-Servers.ps1 -Language fr
-   ```
+1.  Téléchargez la dernière version ou clonez ce dépôt :
+    ```
+    git clone https://github.com/JayceeB1/mcp-server-updater.git
+    cd mcp-server-updater
+    ```
+
+2.  Exécutez le script depuis PowerShell :
+    ```powershell
+    # Autoriser l'exécution du script (si nécessaire, lancez PowerShell en tant qu'administrateur)
+    # Set-ExecutionPolicy RemoteSigned -Scope CurrentUser 
+
+    # Lancer l'outil de mise à jour
+    .\Update-MCP-Servers.ps1 
+    ```
+    Le script analysera vos serveurs, affichera leur statut et vous demandera si vous souhaitez mettre à jour ceux qui ont des changements en attente.
+
+3.  Pour utiliser une langue spécifique (par exemple, le français) :
+    ```powershell
+    .\Update-MCP-Servers.ps1 -Language fr-FR 
+    ```
+    *(Voir la section Localisation pour plus de détails)*
 
 ## 📊 Fonctionnement
 
-L'outil effectue les opérations suivantes :
+L'outil effectue les opérations suivantes séquentiellement :
 
-1. **Phase d'analyse** :
-   - Lit le fichier de configuration de Claude Desktop pour identifier tous les serveurs MCP
-   - Détecte l'emplacement de chaque serveur sur le disque
-   - Trouve le dépôt Git associé à chaque serveur
-   - Détermine le type de projet et les outils de build nécessaires
-   - Vérifie si des mises à jour sont disponibles depuis le dépôt distant
+1.  **Phase d'analyse** :
+    - Lit le fichier de configuration de Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`) pour identifier tous les serveurs MCP.
+    - Détecte l'emplacement de chaque serveur sur le disque.
+    - Trouve le dépôt Git associé à chaque serveur (en cherchant dans les répertoires parents si nécessaire).
+    - Détermine le type de projet et les outils de build nécessaires.
+    - Vérifie si des mises à jour sont disponibles depuis le dépôt distant (`git fetch` + `git rev-list`).
 
-2. **Phase de rapport** :
-   - Affiche des informations détaillées sur chaque serveur
-   - Montre quels serveurs peuvent être mis à jour
-   - Génère un rapport JSON détaillé
+2.  **Phase de rapport** :
+    - Affiche des informations détaillées et le statut de mise à jour pour chaque serveur.
+    - Génère un rapport JSON détaillé (`mcp-detailed-analysis.json`).
+    - Génère un journal des opérations (`mcp-updater-log.txt`).
 
-3. **Phase de mise à jour** (optionnelle) :
-   - Crée des branches de sauvegarde pour préserver votre état actuel
-   - Récupère les dernières modifications des dépôts distants
-   - Installe les dépendances à l'aide du gestionnaire de paquets approprié
-   - Compile le code mis à jour avec le système de build correct
+3.  **Phase de confirmation de mise à jour** :
+    - Si des serveurs ont des mises à jour disponibles, ils sont listés.
+    - Demande une confirmation à l'utilisateur (`O/N`) avant de procéder aux mises à jour.
+
+4.  **Phase de mise à jour** (si confirmée par l'utilisateur) :
+    - Pour chaque serveur confirmé pour la mise à jour :
+        - Met de côté les modifications locales non validées avec `git stash` (optionnel, si des modifications existent).
+        - Récupère les dernières modifications du dépôt distant (`git pull`).
+        - Installe les dépendances à l'aide du gestionnaire de paquets approprié (npm, pip, etc.).
+        - Compile le code mis à jour avec le système de build correct (npm run build, mvn install, etc.).
+    - Rapporte le succès ou l'échec de chaque mise à jour.
 
 ## 🛠️ Types de projets pris en charge
 
-| Type | Méthode de détection | Commandes de mise à jour |
-|------|-----------------|-----------------|
-| Node.js | package.json | npm install, npm run build |
-| TypeScript | tsconfig.json | npm install, npm run build |
-| Python | requirements.txt, Pipfile, setup.py | pip install, pipenv install |
-| Go | go.mod | go mod download, go build |
-| Java | pom.xml, gradlew | mvn clean install, ./gradlew build |
-| Rust | Cargo.toml | cargo build |
-| .NET | *.csproj | dotnet restore, dotnet build |
-| C/C++ | Makefile, CMakeLists.txt | make, cmake |
+| Type       | Méthode de détection                  | Commandes de mise à jour                     |
+| :--------- | :-------------------------------- | :---------------------------------- |
+| Node.js    | `package.json`                    | `npm install`, `npm run build`      |
+| TypeScript | `tsconfig.json`                   | `npm install`, `npm run build`      |
+| Python     | `requirements.txt`, `Pipfile`, `setup.py` | `pip install`, `pipenv install` |
+| Go         | `go.mod`                          | `go mod download`, `go build`       |
+| Java       | `pom.xml`, `gradlew`              | `mvn clean install`, `./gradlew build` |
+| Rust       | `Cargo.toml`                      | `cargo build`                       |
+| .NET       | `*.csproj`                        | `dotnet restore`, `dotnet build`    |
+| C/C++      | `Makefile`, `CMakeLists.txt`      | `make`, `cmake`                     |
 
 ## 🔧 Configuration
 
-Aucune configuration spéciale n'est requise. Le script lit automatiquement votre configuration Claude Desktop depuis :
+Aucune configuration spéciale n'est requise pour le script lui-même. Il lit automatiquement votre configuration Claude Desktop depuis :
 
 ```
 %APPDATA%\Claude\claude_desktop_config.json
 ```
 
+Assurez-vous que ce fichier liste correctement vos serveurs MCP.
+
 ## 🌐 Localisation
 
-L'outil prend en charge plusieurs langues :
+L'outil utilise le mécanisme de localisation standard de PowerShell. Les chaînes de caractères destinées à l'utilisateur sont stockées dans des fichiers `.psd1` situés dans des sous-répertoires spécifiques à chaque langue sous le dossier `Strings` (par ex., `Strings\en-US`, `Strings\fr-FR`).
 
-- Anglais (par défaut)
-- Français
+- **Langues prises en charge :**
+    - Anglais (`en-US`) - Par défaut
+    - Français (`fr-FR`)
 
-Pour exécuter le script dans une langue spécifique :
+- **Sélection de la langue :**
+    1.  **Paramètre :** Utilisez le paramètre `-Language` avec un code de culture pris en charge (par ex., `.\Update-MCP-Servers.ps1 -Language fr-FR`).
+    2.  **Défaut système :** Si `-Language` n'est pas fourni, le script tente d'utiliser la culture d'interface utilisateur actuelle de votre système (`$PSUICulture.Name`).
+    3.  **Repli :** Si ni la langue spécifiée ni la culture système ne possèdent de fichier `.psd1` correspondant, le script utilise `en-US`.
 
-```powershell
-.\Update-MCP-Servers.ps1 -Language fr
-```
-
-Consultez le [README de localisation](localization/README.md) pour plus de détails sur l'ajout de nouvelles langues.
+- **Ajouter une nouvelle langue :**
+    1.  Créez un nouveau sous-répertoire dans `Strings` en utilisant le code de culture approprié (par ex., `es-ES` pour l'espagnol).
+    2.  Copiez `Strings\en-US\Update-MCP-Servers.psd1` dans votre nouveau répertoire.
+    3.  Traduisez les valeurs des chaînes dans le fichier `.psd1` copié.
+    4.  Vous pouvez maintenant utiliser la nouvelle langue via le paramètre `-Language` (par ex., `-Language es-ES`).
 
 ## 🔍 Utilisation avancée
 
 ### Arguments de ligne de commande
 
 ```powershell
-.\Update-MCP-Servers.ps1 [-Update] [-ForceUpdate] [-Language <en|fr>]
+.\Update-MCP-Servers.ps1 [-Language <codeCulture>]
 ```
 
-- `-Update` : Active la phase de mise à jour (une confirmation vous sera demandée)
-- `-ForceUpdate` : Met à jour les serveurs sans demander de confirmation
-- `-Language` : Définit la langue d'affichage (en=Anglais, fr=Français)
+- `-Language <codeCulture>` : Définit la langue d'affichage. Utilisez les codes de culture standard comme `en-US`, `fr-FR`, etc.
+
+*(Note : Les arguments `-Update` et `-ForceUpdate` ont été supprimés. Le script vérifie maintenant automatiquement les mises à jour et demande confirmation.)*
 
 ### Variables d'environnement
 
-- `MCP_UPDATER_BACKUP_DIR` : Emplacement personnalisé pour les sauvegardes
-- `MCP_UPDATER_LOG_LEVEL` : Définir sur DEBUG pour des journaux plus détaillés
+- `MCP_UPDATER_BACKUP_DIR` : (Non implémenté actuellement) Emplacement personnalisé pour les sauvegardes.
+- `MCP_UPDATER_LOG_LEVEL` : (Non implémenté actuellement) Définir sur DEBUG pour des journaux plus détaillés.
 
 ## 🚀 Principales améliorations
 
 Par rapport aux méthodes de mise à jour basiques, cet outil offre :
 
-1. **Détection intelligente des dépôts Git** - Recherche les dépôts Git dans les répertoires parents
-2. **Interface utilisateur améliorée** - Affichage clair avec code couleur
-3. **Support multilingue** - Anglais et français, facilement extensible
-4. **Options de ligne de commande** - Options flexibles pour les mises à jour et la sélection de la langue
-5. **Analyse approfondie des projets** - Détection automatique du type de projet et des commandes de build appropriées
-6. **Protection des modifications locales** - Crée des branches de sauvegarde avant la mise à jour
-7. **Compatibilité multiplateforme** - Fonctionne avec différents types de serveurs MCP (Node.js, Python, etc.)
+1.  **Détection intelligente des dépôts Git** - Recherche dans les répertoires parents.
+2.  **Interface utilisateur améliorée** - Affichage clair avec code couleur.
+3.  **Localisation Standardisée** - Facilement extensible via les fichiers `.psd1`.
+4.  **Exécution Simplifiée** - Pas d'arguments complexes requis pour l'opération de base.
+5.  **Analyse approfondie des projets** - Détection automatique du type de projet et des commandes de build.
+6.  **Protection des modifications locales** - Met de côté les modifications locales avant la mise à jour.
+7.  **Compatibilité multiplateforme** - Fonctionne avec différents types de serveurs MCP.
 
 ## 📄 Licence
 
@@ -137,7 +153,7 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ## 🤝 Contribuer
 
-Les contributions sont les bienvenues ! N'hésitez pas à soumettre une Pull Request.
+Les contributions sont les bienvenues ! N'hésitez pas à soumettre une Pull Request. Envisagez d'ajouter des traductions pour de nouvelles langues !
 
 ## ☕ Soutenir le développement
 

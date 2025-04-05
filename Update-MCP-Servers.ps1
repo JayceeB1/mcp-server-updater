@@ -1,10 +1,83 @@
+#!/usr/bin/env pwsh
+#Requires -Version 5.0
+
 # MCP Servers Updater
 # Created: 05/04/2025
 # Author: Claude & JayceeB1
 # This script analyzes MCP servers and can update them if needed
 
+# Define script parameters
+param (
+    # Specifies the language for UI messages. Defaults to 'en-US' or system culture if available.
+    [string]$Language
+)
+
 # Set UTF-8 encoding
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+
+
+# --- Localization Setup ---
+# Initialize $LocalizedStrings to $null to handle cases where loading fails
+$LocalizedStrings = $null
+try {
+    # Determine UI Culture
+    $stringsBasePath = Join-Path $PSScriptRoot "Strings"
+    $availableCultures = Get-ChildItem -Path $stringsBasePath -ErrorAction SilentlyContinue | Where-Object {$_.PSIsContainer} | ForEach-Object {$_.Name}
+    $defaultCulture = "en-US" # Fallback language
+
+    if ($null -eq $availableCultures -or $availableCultures.Count -eq 0) {
+         Write-Warning "No language resource directories found in '$stringsBasePath'. Using hardcoded English strings."
+    } else {
+        # Determine the target culture based on parameter, system UI, or default
+        $targetCulture = $defaultCulture # Start with default
+        if ($PSBoundParameters.ContainsKey('Language') -and $Language -in $availableCultures) {
+            $targetCulture = $Language
+        } elseif ($PSUICulture.Name -in $availableCultures) {
+            $targetCulture = $PSUICulture.Name
+        } elseif (-not ($availableCultures -contains $defaultCulture)) {
+             # If default isn't available either, pick the first one found
+            $targetCulture = $availableCultures[0] 
+        }
+        
+        # Attempt to load the strings using the determined culture and base directory
+        try {
+            # Use -BaseDirectory to specify the 'Strings' folder
+            Import-LocalizedData -BindingVariable LocalizedStrings -UICulture $targetCulture -FileName "Update-MCP-Servers.psd1" -BaseDirectory $stringsBasePath -ErrorAction Stop
+            # Write-Log is not available yet, so use Write-Host for initial feedback if needed
+            # Write-Host "Loaded language: $targetCulture"
+        } catch {
+            Write-Warning "Failed to load localized strings for culture '$targetCulture' from '$stringsBasePath'. Error: $_. Attempting fallback."
+            $LocalizedStrings = $null # Ensure it's null if loading failed
+        }
+    }
+} catch {
+    # Catch errors in the culture detection logic itself
+    Write-Warning "An error occurred during language detection: $_. Attempting fallback."
+    $LocalizedStrings = $null
+}
+
+# Fallback mechanism: If $LocalizedStrings is still null, load English strings directly as a fallback
+if ($null -eq $LocalizedStrings) {
+    $fallbackPath = Join-Path $stringsBasePath "en-US\Update-MCP-Servers.psd1"
+    if (Test-Path $fallbackPath) {
+        try {
+            # Use Invoke-Expression carefully, ensure the .psd1 file is trusted
+            $LocalizedStrings = Invoke-Expression (Get-Content $fallbackPath -Raw)
+            Write-Warning "Using fallback English strings from $fallbackPath."
+        } catch {
+             Write-Error "FATAL: Failed to load fallback English strings from $fallbackPath. Error: $_"
+             # Consider exiting or handling this fatal error appropriately
+             exit 1 
+        }
+    } else {
+        Write-Error "FATAL: Fallback English resource file not found at $fallbackPath. Cannot proceed."
+        # Consider exiting or handling this fatal error appropriately
+        exit 1
+    }
+}
+# --- End Localization Setup ---
+
 
 # Configuration
 $configPath = "$env:APPDATA\Claude\claude_desktop_config.json"
@@ -14,15 +87,15 @@ $detailedLogFile = "$env:USERPROFILE\Documents\MCP-Scripts\mcp-detailed-analysis
 # Ensure log directory and files exist
 $logDirectory = Split-Path -Path $logFile -Parent
 if (-not (Test-Path -Path $logDirectory -PathType Container)) {
-    Write-Host "Creating log directory: $logDirectory" -ForegroundColor Yellow
+    Write-Host ($LocalizedStrings.CreatingLogDir -f $logDirectory) -ForegroundColor Yellow
     New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
 }
 if (-not (Test-Path -Path $logFile)) {
-    Write-Host "Creating log file: $logFile" -ForegroundColor Yellow
+    Write-Host ($LocalizedStrings.CreatingLogFile -f $logFile) -ForegroundColor Yellow
     New-Item -Path $logFile -ItemType File -Force | Out-Null
 }
 if (-not (Test-Path -Path $detailedLogFile)) {
-    Write-Host "Creating detailed log file: $detailedLogFile" -ForegroundColor Yellow
+    Write-Host ($LocalizedStrings.CreatingDetailedLogFile -f $detailedLogFile) -ForegroundColor Yellow
     New-Item -Path $detailedLogFile -ItemType File -Force | Out-Null
 }
 
@@ -42,6 +115,7 @@ function Write-Log {
     )
     
     if ([string]::IsNullOrEmpty($Message)) {
+        # This is internal, not localized
         $Message = "[Empty Message]"
     }
     
@@ -60,6 +134,7 @@ function Write-ColorOutput {
     )
     
     if ([string]::IsNullOrEmpty($Message)) {
+        # This is internal, not localized
         $Message = "[Empty Message]"
     }
     
@@ -76,7 +151,7 @@ function Test-GitRepository {
     
     $currentPath = $Path
     
-    while ($currentPath -ne $null -and $currentPath -ne "") {
+    while ($null -ne $currentPath -and $currentPath -ne "") {
         if (Test-Path (Join-Path $currentPath ".git")) {
             if ($FindRoot) {
                 return $currentPath  # Return the root path of the repo
@@ -177,7 +252,7 @@ function Get-ProjectType {
             $projectInfo.PackageName = $packageJson.name
             $projectInfo.PackageVersion = $packageJson.version
             $projectInfo.HasTypescript = Test-Path (Join-Path $Path "tsconfig.json")
-            $projectInfo.HasBuildScript = $null -ne $packageJson.scripts.build
+            $projectInfo.HasBuildScript = $null -ne $packageJson.scripts?.build # Keep safe navigation
             $projectInfo.BuildCommand = if ($projectInfo.HasBuildScript) { "npm run build" } else { $null }
             $projectInfo.DependenciesCount = if ($packageJson.dependencies) { ($packageJson.dependencies | Get-Member -MemberType NoteProperty).Count } else { 0 }
         } catch {
@@ -268,10 +343,10 @@ function Test-GitRepositoryUpdate {
     $gitRoot = Test-GitRepository -Path $Path -FindRoot
     
     if (-not $gitRoot) {
-        Write-ColorOutput "The path '$Path' is not a valid Git repository." "Red"
+        Write-ColorOutput ($LocalizedStrings.PathNotGitRepo -f $Path) "Red"
         return @{
             IsGitRepo = $false
-            Error = "Not a valid Git repository"
+            Error = $LocalizedStrings.PathNotGitRepo -f $Path # Use localized string for error consistency
         }
     }
     
@@ -306,7 +381,8 @@ function Test-GitRepositoryUpdate {
         
         # Check for uncommitted changes
         $status = git status --porcelain
-        $analysis.HasLocalChanges = $null -ne $status -and $status.Length -gt 0
+        # This comparison seems correct as $status contains output or is $null/empty
+        $analysis.HasLocalChanges = $null -ne $status -and $status.Length -gt 0 
         
         # Fetch the latest changes (without applying them)
         git fetch origin 2>$null
@@ -317,14 +393,15 @@ function Test-GitRepositoryUpdate {
             $remoteBranchExists = git ls-remote --heads origin $analysis.CurrentBranch | Out-String
             
             if (-not $remoteBranchExists) {
-                $analysis.UpdateStatus = "Remote branch not found or not accessible"
+                $analysis.UpdateStatus = $LocalizedStrings.StatusRemoteBranchNotFound
                 $analysis.IsUpToDate = $false
             } else {
                 $behind = git rev-list --count HEAD..origin/$($analysis.CurrentBranch) 2>$null
                 $ahead = git rev-list --count origin/$($analysis.CurrentBranch)..HEAD 2>$null
                 
+                # Already correct
                 if ($null -eq $behind -or $null -eq $ahead) {
-                    $analysis.UpdateStatus = "Error checking for updates"
+                    $analysis.UpdateStatus = $LocalizedStrings.StatusErrorCheckingUpdates
                     $analysis.IsUpToDate = $false
                 } else {
                     $analysis.Behind = [int]$behind
@@ -333,15 +410,15 @@ function Test-GitRepositoryUpdate {
                     $analysis.HasLocalCommits = $ahead -gt 0
                     
                     if ($behind -eq 0) {
-                        $analysis.UpdateStatus = "Up to date"
+                        $analysis.UpdateStatus = $LocalizedStrings.StatusUpToDate
                     } else {
-                        $analysis.UpdateStatus = "Updates available ($behind commits behind)"
+                        $analysis.UpdateStatus = $LocalizedStrings.StatusUpdatesAvailable -f $behind
                     }
                 }
             }
         } catch {
             Write-Log "Error checking for updates: $_" -Level "ERROR"
-            $analysis.UpdateStatus = "Error checking for updates"
+            $analysis.UpdateStatus = $LocalizedStrings.StatusErrorCheckingUpdates
             $analysis.IsUpToDate = $false
         }
         
@@ -353,7 +430,7 @@ function Test-GitRepositoryUpdate {
         
         return $analysis
     } catch {
-        Write-ColorOutput "Error analyzing repository: $_" "Red"
+        Write-ColorOutput ($LocalizedStrings.ErrorAnalyzingRepo -f $_) "Red"
         Write-Log "Error analyzing ${Path}: $_" -Level "ERROR"
         
         return @{
@@ -375,100 +452,100 @@ function Update-GitRepository {
     
     $gitRoot = $Analysis.GitRoot
     
-    if (-not $gitRoot) {
-        Write-ColorOutput "  The path '$Path' is not a valid Git repository." "Red"
+    if ($null -eq $gitRoot) {
+        Write-ColorOutput ($LocalizedStrings.PathNotGitRepo -f $Path) "Red" # Re-use string
         return $false
     }
     
     Push-Location $gitRoot
     try {
-        Write-ColorOutput "  Updating MCP server '$McpName'..." "Cyan"
+        Write-ColorOutput ($LocalizedStrings.UpdatingServer -f $McpName) "Cyan"
         
         # Backup uncommitted changes if necessary
         if ($Analysis.HasLocalChanges) {
             $backupBranch = "backup-" + (Get-Date -Format "yyyyMMdd-HHmmss")
             git stash
             git branch $backupBranch
-            Write-ColorOutput "  Local changes backed up in branch $backupBranch" "Yellow"
+            Write-ColorOutput ($LocalizedStrings.LocalChangesBackedUp -f $backupBranch) "Yellow"
         }
         
         # Get the current version
         $currentVersion = $Analysis.CurrentVersion
         
         # Pull changes
-        Write-ColorOutput "  Running 'git pull origin $($Analysis.CurrentBranch)'..." "Gray"
+        Write-ColorOutput ($LocalizedStrings.RunningGitPull -f $Analysis.CurrentBranch) "Gray"
         $pullResult = git pull origin $Analysis.CurrentBranch 2>&1
         $pullSuccess = $LASTEXITCODE -eq 0
         
         if (-not $pullSuccess) {
-            Write-ColorOutput "  Error updating: $pullResult" "Red"
+            Write-ColorOutput ($LocalizedStrings.ErrorUpdating -f $pullResult) "Red"
             return $false
         }
         
         # Get the new version
         $newVersion = git describe --tags --always 2>$null
-        if (-not $newVersion) {
+        if ($null -eq $newVersion) {
             $newVersion = git rev-parse --short HEAD
         }
         
-        Write-ColorOutput "  MCP server '$McpName' updated from $currentVersion to $newVersion" "Green"
+        Write-ColorOutput ($LocalizedStrings.ServerUpdated -f $McpName, $currentVersion, $newVersion) "Green"
         
         # Perform actions specific to the project type
         switch ($Analysis.ProjectType) {
             "Node.js" {
-                Write-ColorOutput "  Installing Node.js dependencies..." "Gray"
+                Write-ColorOutput $LocalizedStrings.InstallingNodeDeps "Gray"
                 npm install
                 
                 if ($Analysis.ProjectDetails.HasBuildScript) {
-                    Write-ColorOutput "  Building project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.BuildingProject "Gray"
                     npm run build
                 }
             }
             "Python" {
                 if ($Analysis.ProjectDetails.HasPipfile) {
-                    Write-ColorOutput "  Installing Python dependencies (pipenv)..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.InstallingPipenvDeps "Gray"
                     pipenv install
                 } elseif ($Analysis.ProjectDetails.HasRequirements) {
-                    Write-ColorOutput "  Installing Python dependencies (pip)..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.InstallingPipDeps "Gray"
                     pip install -r requirements.txt
                 } elseif ($Analysis.ProjectDetails.HasSetupPy) {
-                    Write-ColorOutput "  Installing Python package..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.InstallingPythonPackage "Gray"
                     pip install -e .
                 }
             }
             "Go" {
-                Write-ColorOutput "  Installing Go dependencies..." "Gray"
+                Write-ColorOutput $LocalizedStrings.InstallingGoDeps "Gray"
                 go mod download
-                Write-ColorOutput "  Building Go project..." "Gray"
+                Write-ColorOutput $LocalizedStrings.BuildingGoProject "Gray"
                 go build
             }
             "JVM" {
                 if ($Analysis.ProjectDetails.HasMaven) {
-                    Write-ColorOutput "  Building Maven project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.BuildingMavenProject "Gray"
                     mvn clean install
                 } elseif ($Analysis.ProjectDetails.HasGradlew) {
-                    Write-ColorOutput "  Building Gradle project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.BuildingGradleProject "Gray"
                     ./gradlew build
                 }
             }
             "Rust" {
-                Write-ColorOutput "  Building Rust project..." "Gray"
+                Write-ColorOutput $LocalizedStrings.BuildingRustProject "Gray"
                 cargo build
             }
             ".NET" {
-                Write-ColorOutput "  Restoring .NET dependencies..." "Gray"
+                Write-ColorOutput $LocalizedStrings.RestoringNetDeps "Gray"
                 dotnet restore
-                Write-ColorOutput "  Building .NET project..." "Gray"
+                Write-ColorOutput $LocalizedStrings.BuildingNetProject "Gray"
                 dotnet build
             }
             "C/C++" {
                 if ($Analysis.ProjectDetails.HasCMakeLists) {
-                    Write-ColorOutput "  Generating CMake project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.GeneratingCMakeProject "Gray"
                     cmake -B build
-                    Write-ColorOutput "  Building CMake project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.BuildingCMakeProject "Gray"
                     cmake --build build
                 } elseif ($Analysis.ProjectDetails.HasMakefile) {
-                    Write-ColorOutput "  Building Make project..." "Gray"
+                    Write-ColorOutput $LocalizedStrings.BuildingMakeProject "Gray"
                     make
                 }
             }
@@ -476,7 +553,7 @@ function Update-GitRepository {
         
         return $true
     } catch {
-        Write-ColorOutput "  Error updating: $_" "Red"
+        Write-ColorOutput ($LocalizedStrings.ErrorUpdating -f $_) "Red"
         return $false
     } finally {
         Pop-Location
@@ -547,7 +624,7 @@ function Test-AllMcpServers {
     
     # Check that the configuration file exists
     if (-not (Test-Path $configPath)) {
-        Write-ColorOutput "Claude Desktop configuration file not found at: $configPath" "Red"
+        Write-ColorOutput ($LocalizedStrings.ConfigNotFound -f $configPath) "Red"
         return
     }
     
@@ -555,13 +632,13 @@ function Test-AllMcpServers {
     try {
         $config = Get-Content -Path $configPath -Raw | ConvertFrom-Json
     } catch {
-        Write-ColorOutput "Error reading configuration file: $_" "Red"
+        Write-ColorOutput ($LocalizedStrings.ErrorReadingConfig -f $_) "Red"
         return
     }
     
     # Check that MCP servers are configured
-    if (-not $config.mcpServers -or ($config.mcpServers | Get-Member -MemberType NoteProperty).Count -eq 0) {
-        Write-ColorOutput "No MCP servers are configured in the configuration file." "Yellow"
+    if ($null -eq $config.mcpServers -or ($config.mcpServers | Get-Member -MemberType NoteProperty).Count -eq 0) {
+        Write-ColorOutput $LocalizedStrings.NoServersConfigured "Yellow"
         return
     }
     
@@ -571,14 +648,14 @@ function Test-AllMcpServers {
     $skippedCount = 0
     $failedCount = 0
     
-    Write-ColorOutput "=== Analyzing MCP Servers for Claude Desktop ===" "Cyan"
-    Write-ColorOutput "MCP servers detected: $serverCount" "Cyan"
-    Write-ColorOutput ""
+    Write-ColorOutput $LocalizedStrings.AnalyzingServersTitle "Cyan"
+    Write-ColorOutput ($LocalizedStrings.ServersDetected -f $serverCount) "Cyan"
+    # Removed empty Write-ColorOutput for spacing
     
     foreach ($mcpName in ($config.mcpServers | Get-Member -MemberType NoteProperty).Name) {
         $mcpConfig = $config.mcpServers.$mcpName
         
-        Write-ColorOutput "Analyzing MCP server '$mcpName'..." "White"
+        Write-ColorOutput ($LocalizedStrings.AnalyzingServer -f $mcpName) "White"
         Write-Log "===== Starting analysis of MCP server '$mcpName' =====" -Level "INFO"
         
         # Collect basic server information
@@ -592,12 +669,12 @@ function Test-AllMcpServers {
         # Get the MCP server path
         $mcpPath = Get-McpPath -Command $mcpConfig.command -Arguments $mcpConfig.args
         
-        if (-not $mcpPath) {
-            Write-ColorOutput "  Unable to determine path for MCP server '$mcpName'." "Yellow"
+        if ($null -eq $mcpPath) {
+            Write-ColorOutput ($LocalizedStrings.UnableToDeterminePath -f $mcpName) "Yellow"
             Write-Log "Unable to determine path for '$mcpName'." -Level "WARN"
             
             $serverInfo.Status = "SKIPPED"
-            $serverInfo.Error = "Unable to determine path"
+            $serverInfo.Error = $LocalizedStrings.UnableToDeterminePath -f $mcpName # Use localized string
             $detailedAnalysis[$mcpName] = $serverInfo
             
             $skippedCount++
@@ -605,24 +682,24 @@ function Test-AllMcpServers {
         }
         
         if (-not (Test-Path $mcpPath)) {
-            Write-ColorOutput "  Detected path '$mcpPath' does not exist." "Yellow"
+            Write-ColorOutput ($LocalizedStrings.DetectedPathNotExist -f $mcpPath) "Yellow"
             Write-Log "Detected path '$mcpPath' does not exist for '$mcpName'." -Level "WARN"
             
             $serverInfo.Path = $mcpPath
             $serverInfo.Status = "SKIPPED"
-            $serverInfo.Error = "Path does not exist"
+            $serverInfo.Error = $LocalizedStrings.DetectedPathNotExist -f $mcpPath # Use localized string
             $detailedAnalysis[$mcpName] = $serverInfo
             
             $skippedCount++
             continue
         }
         
-        Write-ColorOutput "  Detected path: $mcpPath" "Gray"
+        Write-ColorOutput ($LocalizedStrings.DetectedPath -f $mcpPath) "Gray"
         Write-Log "Detected path for '$mcpName': $mcpPath" -Level "INFO"
         
         # Check if it's a Git repository by also checking parent directories
         if (-not (Test-GitRepository $mcpPath)) {
-            Write-ColorOutput "  Not a Git repository (or any parent directory)." "Yellow"
+            Write-ColorOutput $LocalizedStrings.NotAGitRepo "Yellow"
             Write-Log "Path '$mcpPath' is not a Git repository (or any parent directory)." -Level "WARN"
             
             $serverInfo.Path = $mcpPath
@@ -635,12 +712,13 @@ function Test-AllMcpServers {
         }
         
         # Analyze the repository
-        Write-ColorOutput "  Analyzing Git repository..." "Gray"
+        Write-ColorOutput $LocalizedStrings.AnalyzingGitRepo "Gray"
         $analysisResult = Test-GitRepositoryUpdate -Path $mcpPath -McpName $mcpName
         
         if ($analysisResult.Error) {
-            $errorMsg = if ([string]::IsNullOrEmpty($analysisResult.Error)) { "Unknown error" } else { $analysisResult.Error }
-            Write-ColorOutput "  Error analyzing repository: $errorMsg" "Red"
+            # No change needed for IsNullOrEmpty
+            $errorMsg = if ([string]::IsNullOrEmpty($analysisResult.Error)) { $LocalizedStrings.UnknownError } else { $analysisResult.Error }
+            Write-ColorOutput ($LocalizedStrings.ErrorAnalyzingRepoDetailed -f $errorMsg) "Red"
             Write-Log "Error analyzing repository '$mcpPath': $errorMsg" -Level "ERROR"
             
             $serverInfo.Path = $mcpPath
@@ -652,83 +730,83 @@ function Test-AllMcpServers {
         } else {
             # Update status
             $updateStatus = $analysisResult.UpdateStatus
-            Write-ColorOutput "  Update status: $updateStatus" -ForegroundColor $(if ($analysisResult.IsUpToDate) { "Green" } else { "Yellow" })
+            Write-ColorOutput ($LocalizedStrings.UpdateStatus -f $updateStatus) -ForegroundColor $(if ($analysisResult.IsUpToDate) { "Green" } else { "Yellow" })
             
             # Project type
             $projectType = $analysisResult.ProjectType
             $language = $analysisResult.Language
-            Write-ColorOutput "  Detected project type: $projectType ($language)" "Gray"
+            Write-ColorOutput ($LocalizedStrings.DetectedProjectType -f $projectType, $language) "Gray"
             
             # Build instructions
             if ($analysisResult.ProjectDetails.HasBuildScript) {
-                Write-ColorOutput "  Build script detected: $($analysisResult.ProjectDetails.BuildCommand)" "Gray"
+                Write-ColorOutput ($LocalizedStrings.BuildScriptDetected -f $analysisResult.ProjectDetails.BuildCommand) "Gray"
             }
             
             # Local changes
             if ($analysisResult.HasLocalChanges) {
-                Write-ColorOutput "  Warning: Uncommitted local changes detected." "Yellow"
+                Write-ColorOutput $LocalizedStrings.WarningLocalChanges "Yellow"
             }
             
             # Language-specific update commands
             switch ($projectType) {
                 "Node.js" {
-                    Write-ColorOutput "  Node.js update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
-                    Write-ColorOutput "    - npm install" "Gray"
+                    Write-ColorOutput $LocalizedStrings.NodeUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.NpmInstallCommand "Gray"
                     if ($analysisResult.ProjectDetails.HasBuildScript) {
-                        Write-ColorOutput "    - $($analysisResult.ProjectDetails.BuildCommand)" "Gray"
+                        Write-ColorOutput ($LocalizedStrings.NpmBuildCommand -f $analysisResult.ProjectDetails.BuildCommand) "Gray"
                     }
                 }
                 "Python" {
-                    Write-ColorOutput "  Python update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
+                    Write-ColorOutput $LocalizedStrings.PythonUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
                     if ($analysisResult.ProjectDetails.HasPipfile) {
-                        Write-ColorOutput "    - pipenv install" "Gray"
+                        Write-ColorOutput $LocalizedStrings.PipenvInstallCommand "Gray"
                     } elseif ($analysisResult.ProjectDetails.HasRequirements) {
-                        Write-ColorOutput "    - pip install -r requirements.txt" "Gray"
+                        Write-ColorOutput $LocalizedStrings.PipInstallRequirementsCommand "Gray"
                     } elseif ($analysisResult.ProjectDetails.HasSetupPy) {
-                        Write-ColorOutput "    - pip install -e ." "Gray"
+                        Write-ColorOutput $LocalizedStrings.PipInstallEditableCommand "Gray"
                     }
                 }
                 "Go" {
-                    Write-ColorOutput "  Go update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
-                    Write-ColorOutput "    - go mod download" "Gray"
-                    Write-ColorOutput "    - go build" "Gray"
+                    Write-ColorOutput $LocalizedStrings.GoUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.GoModDownloadCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.GoBuildCommand "Gray"
                 }
                 "JVM" {
-                    Write-ColorOutput "  JVM update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
+                    Write-ColorOutput $LocalizedStrings.JvmUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
                     if ($analysisResult.ProjectDetails.HasMaven) {
-                        Write-ColorOutput "    - mvn clean install" "Gray"
+                        Write-ColorOutput $LocalizedStrings.MvnCleanInstallCommand "Gray"
                     } elseif ($analysisResult.ProjectDetails.HasGradlew) {
-                        Write-ColorOutput "    - ./gradlew build" "Gray"
+                        Write-ColorOutput $LocalizedStrings.GradlewBuildCommand "Gray"
                     }
                 }
                 "Rust" {
-                    Write-ColorOutput "  Rust update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
-                    Write-ColorOutput "    - cargo build" "Gray"
+                    Write-ColorOutput $LocalizedStrings.RustUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.CargoBuildCommand "Gray"
                 }
                 ".NET" {
-                    Write-ColorOutput "  .NET update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
-                    Write-ColorOutput "    - dotnet restore" "Gray"
-                    Write-ColorOutput "    - dotnet build" "Gray"
+                    Write-ColorOutput $LocalizedStrings.NetUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.DotnetRestoreCommand "Gray"
+                    Write-ColorOutput $LocalizedStrings.DotnetBuildCommand "Gray"
                 }
                 "C/C++" {
-                    Write-ColorOutput "  C/C++ update commands:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
+                    Write-ColorOutput $LocalizedStrings.CUpdateCommands "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
                     if ($analysisResult.ProjectDetails.HasCMakeLists) {
-                        Write-ColorOutput "    - cmake -B build" "Gray"
-                        Write-ColorOutput "    - cmake --build build" "Gray"
+                        Write-ColorOutput $LocalizedStrings.CMakeGenerateCommand "Gray"
+                        Write-ColorOutput $LocalizedStrings.CMakeBuildCommand "Gray"
                     } elseif ($analysisResult.ProjectDetails.HasMakefile) {
-                        Write-ColorOutput "    - make" "Gray"
+                        Write-ColorOutput $LocalizedStrings.MakeCommand "Gray"
                     }
                 }
                 default {
-                    Write-ColorOutput "  Unrecognized project type. Standard Git update:" "Gray"
-                    Write-ColorOutput "    - git pull" "Gray"
+                    Write-ColorOutput $LocalizedStrings.UnrecognizedProjectType "Gray"
+                    Write-ColorOutput $LocalizedStrings.GitPullCommand "Gray"
                 }
             }
             
@@ -740,27 +818,27 @@ function Test-AllMcpServers {
             $analyzedCount++
         }
         
-        Write-ColorOutput ""
+        # Removed empty Write-ColorOutput for spacing
         Write-Log "===== End of analysis of MCP server '$mcpName' =====" -Level "INFO"
     }
     
     # Display summary
-    Write-ColorOutput "=== Analysis Summary ===" "Cyan"
-    Write-ColorOutput "MCP servers detected: $serverCount" "White"
-    Write-ColorOutput "MCP servers successfully analyzed: $analyzedCount" "Green"
-    Write-ColorOutput "MCP servers skipped: $skippedCount" "Yellow"
-    Write-ColorOutput "MCP servers with errors: $failedCount" "Red"
-    Write-ColorOutput ""
+    Write-ColorOutput $LocalizedStrings.AnalysisSummaryTitle "Cyan"
+    Write-ColorOutput ($LocalizedStrings.ServersDetected -f $serverCount) "White"
+    Write-ColorOutput ($LocalizedStrings.ServersAnalyzed -f $analyzedCount) "Green"
+    Write-ColorOutput ($LocalizedStrings.ServersSkipped -f $skippedCount) "Yellow"
+    Write-ColorOutput ($LocalizedStrings.ServersFailed -f $failedCount) "Red"
+    # Removed empty Write-ColorOutput for spacing
     
     # Save detailed analysis as JSON
     $detailedAnalysisJson = ConvertTo-Json -InputObject $detailedAnalysis -Depth 6
     Set-Content -Path $detailedLogFile -Value $detailedAnalysisJson
     
-    Write-ColorOutput "Detailed analysis saved to: $detailedLogFile" "Gray"
-    Write-ColorOutput "Operations log saved to: $logFile" "Gray"
+    Write-ColorOutput ($LocalizedStrings.DetailedLogSaved -f $detailedLogFile) "Gray"
+    Write-ColorOutput ($LocalizedStrings.LogSaved -f $logFile) "Gray"
     
     # Offer to update if requested and if servers to update are detected
-    if ($Update) {
+    # Offer to update if servers to update are detected
         $serversToUpdate = @()
         
         foreach ($mcpName in $detailedAnalysis.Keys) {
@@ -772,16 +850,16 @@ function Test-AllMcpServers {
         }
         
         if ($serversToUpdate.Count -gt 0) {
-            Write-ColorOutput ""
-            Write-ColorOutput "MCP servers that can be updated ($($serversToUpdate.Count)):" "Cyan"
+            # Removed empty Write-ColorOutput for spacing
+            Write-ColorOutput ($LocalizedStrings.ServersToUpdateTitle -f $serversToUpdate.Count) "Cyan"
             
             foreach ($mcpName in $serversToUpdate) {
                 $behind = $detailedAnalysis[$mcpName].Analysis.Behind
-                Write-ColorOutput "  - $mcpName ($behind commits behind)" "Yellow"
+                Write-ColorOutput ($LocalizedStrings.ServerUpdateInfo -f $mcpName, $behind) "Yellow"
             }
             
             Write-ColorOutput ""
-            $confirmation = Read-Host "Do you want to update these MCP servers? (Y/N)"
+            $confirmation = Read-Host $LocalizedStrings.UpdatePrompt
             
             if ($confirmation -eq "Y" -or $confirmation -eq "y") {
                 $updatedCount = 0
@@ -790,7 +868,7 @@ function Test-AllMcpServers {
                 foreach ($mcpName in $serversToUpdate) {
                     $serverInfo = $detailedAnalysis[$mcpName]
                     
-                    Write-ColorOutput "Updating MCP server '$mcpName'..." "Cyan"
+                    Write-ColorOutput ($LocalizedStrings.UpdatingServer -f $mcpName) "Cyan"
                     Write-Log "===== Start updating MCP server '$mcpName' =====" -Level "INFO"
                     
                     $updateResult = Update-GitRepository -Path $serverInfo.Path -McpName $mcpName -Analysis $serverInfo.Analysis
@@ -807,33 +885,29 @@ function Test-AllMcpServers {
                     Write-Log "===== Finished updating MCP server '$mcpName' =====" -Level "INFO"
                 }
                 
-                Write-ColorOutput "=== Update Summary ===" "Cyan"
-                Write-ColorOutput "MCP servers successfully updated: $updatedCount" "Green"
-                Write-ColorOutput "MCP servers with update errors: $updateFailedCount" "Red"
-                Write-ColorOutput ""
-                Write-ColorOutput "To apply the changes, please restart Claude Desktop." "Cyan"
+                Write-ColorOutput $LocalizedStrings.UpdateSummaryTitle "Cyan"
+                Write-ColorOutput ($LocalizedStrings.ServersUpdated -f $updatedCount) "Green"
+                Write-ColorOutput ($LocalizedStrings.ServersUpdateFailed -f $updateFailedCount) "Red"
+                # Removed empty Write-ColorOutput for spacing
+                Write-ColorOutput $LocalizedStrings.RestartRequired "Cyan"
             } else {
-                Write-ColorOutput "Update canceled." "Yellow"
+                Write-ColorOutput $LocalizedStrings.UpdateCanceled "Yellow"
             }
         } else {
-            Write-ColorOutput ""
-            Write-ColorOutput "All MCP servers are up to date. No updates needed." "Green"
+            # Removed empty Write-ColorOutput for spacing
+            Write-ColorOutput $LocalizedStrings.AllServersUpToDate "Green"
         }
-    }
+    # End of update offer block
 }
 
 # Main entry point
-param (
-    [switch]$Update,
-    [switch]$ForceUpdate,
-    [string]$Language = "en"
-)
+# Param block and localization setup moved to the top of the script (lines 8-68)
 
 try {
     # Set error handler to intercept empty string errors
     $ErrorActionPreference = "Continue"
     
-    Write-ColorOutput "=== Starting MCP Server Updater ===" "Cyan"
+    Write-ColorOutput $LocalizedStrings.StartingUpdater "Cyan"
     Write-Log "=== Starting MCP Server Updater ===" -Level "INFO"
     
     # Create MCP-Scripts directory if it doesn't exist
@@ -842,33 +916,27 @@ try {
         New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
     }
     
-    # Run analysis with update option
-    if ($ForceUpdate) {
-        # Force update without confirmation
-        Test-AllMcpServers -Update
-        # Automatically answer "Y" to the update prompt
-        # This would require modifying the Test-AllMcpServers function
-    } else {
-        Test-AllMcpServers -Update:$Update
-    }
+    # Run the analysis and update process
+    # The Test-AllMcpServers function now handles the update check and prompt internally
+    Test-AllMcpServers
     
-    Write-ColorOutput "=== MCP Server Updater Completed ===" "Cyan"
+    Write-ColorOutput $LocalizedStrings.UpdaterCompleted "Cyan"
     Write-Log "=== MCP Server Updater Completed ===" -Level "INFO"
     
     # Wait for user to press a key before closing
-    Write-ColorOutput "Press any key to exit..." "Gray"
+    Write-ColorOutput $LocalizedStrings.PressAnyKey "Gray"
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 } catch {
     # Handle specific error related to empty strings
     if ($_.Exception.Message -match "empty string") {
-        Write-Host "Empty string error detected and ignored." -ForegroundColor Yellow
+        Write-Host $LocalizedStrings.EmptyStringErrorIgnored -ForegroundColor Yellow
         Write-Log "Empty string error detected and ignored: $_" -Level "WARN"
     } else {
-        Write-ColorOutput "An unexpected error occurred: $_" "Red"
+        Write-ColorOutput ($LocalizedStrings.UnexpectedError -f $_) "Red"
         Write-Log "Unexpected error: $_" -Level "ERROR"
     }
     
     # Wait for user to press a key before closing
-    Write-ColorOutput "Press any key to exit..." "Gray"
+    Write-ColorOutput "$($LocalizedStrings.PressAnyKey)" "Gray"
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }

@@ -1,0 +1,97 @@
+# French strings for Update-MCP-Servers.ps1
+@{
+    CreatingLogDir = 'Création du répertoire des journaux : {0}'
+    CreatingLogFile = 'Création du fichier journal : {0}'
+    CreatingDetailedLogFile = 'Création du fichier journal détaillé : {0}'
+    ErrorExtractingRemoteUrl = "Erreur lors de l'extraction de l'URL distante : {0}"
+    ErrorReadingPackageJson = 'Erreur lors de la lecture de package.json : {0}'
+    PathNotGitRepo = "Le chemin '{0}' n'est pas un repository Git valide."
+    StatusRemoteBranchNotFound = 'Branche distante introuvable ou inaccessible'
+    StatusErrorCheckingUpdates = 'Erreur lors de la vérification des mises à jour'
+    StatusUpToDate = 'À jour'
+    StatusUpdatesAvailable = 'Mises à jour disponibles ({0} commits en retard)'
+    ErrorAnalyzingRepo = "Erreur lors de l'analyse du repository : {0}"
+    UpdatingServer = "  Mise à jour du serveur MCP '{0}'..."
+    LocalChangesBackedUp = '  Modifications locales sauvegardées dans la branche {0}'
+    RunningGitPull = "  Exécution de 'git pull origin {0}'..."
+    ErrorUpdating = '  Erreur lors de la mise à jour : {0}'
+    ServerUpdated = "  Serveur MCP '{0}' mis à jour de {1} vers {2}"
+    InstallingNodeDeps = '  Installation des dépendances Node.js...'
+    BuildingProject = '  Construction du projet...' # Generic term
+    InstallingPipenvDeps = '  Installation des dépendances Python (pipenv)...'
+    InstallingPipDeps = '  Installation des dépendances Python (pip)...'
+    InstallingPythonPackage = '  Installation du package Python...'
+    InstallingGoDeps = '  Installation des dépendances Go...'
+    BuildingGoProject = '  Construction du projet Go...'
+    BuildingMavenProject = '  Construction du projet Maven...'
+    BuildingGradleProject = '  Construction du projet Gradle...'
+    BuildingRustProject = '  Construction du projet Rust...'
+    RestoringNetDeps = '  Restauration des dépendances .NET...'
+    BuildingNetProject = '  Construction du projet .NET...'
+    GeneratingCMakeProject = '  Génération du projet CMake...'
+    BuildingCMakeProject = '  Construction du projet CMake...'
+    BuildingMakeProject = '  Construction du projet Make...'
+    ErrorConvertingPath = "Erreur lors de la conversion du chemin '{0}' en chemin absolu : {1}"
+    ScriptPathNotExist = "Le chemin du script '{0}' n'existe pas."
+    ConfigNotFound = 'Fichier de configuration Claude Desktop introuvable à : {0}'
+    ErrorReadingConfig = 'Erreur lors de la lecture du fichier de configuration : {0}'
+    NoServersConfigured = "Aucun serveur MCP n'est configuré dans le fichier de configuration."
+    AnalyzingServersTitle = '=== Analyse des Serveurs MCP pour Claude Desktop ==='
+    ServersDetected = 'Serveurs MCP détectés : {0}'
+    AnalyzingServer = "Analyse du serveur MCP '{0}'..."
+    UnableToDeterminePath = "  Impossible de déterminer le chemin pour le serveur MCP '{0}'."
+    DetectedPathNotExist = "  Le chemin détecté '{0}' n'existe pas."
+    DetectedPath = '  Chemin détecté : {0}'
+    NotAGitRepo = '  Pas un repository Git (ou un répertoire parent).'
+    AnalyzingGitRepo = '  Analyse du repository Git...'
+    UnknownError = 'Erreur inconnue'
+    ErrorAnalyzingRepoDetailed = "  Erreur lors de l'analyse du repository : {0}"
+    UpdateStatus = '  Statut de la mise à jour : {0}'
+    DetectedProjectType = '  Type de projet détecté : {0} ({1})'
+    BuildScriptDetected = '  Script de build détecté : {0}'
+    WarningLocalChanges = '  Avertissement : Modifications locales non validées détectées.'
+    NodeUpdateCommands = '  Commandes de mise à jour Node.js :'
+    PythonUpdateCommands = '  Commandes de mise à jour Python :'
+    GoUpdateCommands = '  Commandes de mise à jour Go :'
+    JvmUpdateCommands = '  Commandes de mise à jour JVM :'
+    RustUpdateCommands = '  Commandes de mise à jour Rust :'
+    NetUpdateCommands = '  Commandes de mise à jour .NET :'
+    CUpdateCommands = '  Commandes de mise à jour C/C++ :'
+    UnrecognizedProjectType = '  Type de projet non reconnu. Mise à jour Git standard :'
+    GitPullCommand = '    - git pull'
+    NpmInstallCommand = '    - npm install'
+    NpmBuildCommand = '    - {0}' # Placeholder for actual build command
+    PipenvInstallCommand = '    - pipenv install'
+    PipInstallRequirementsCommand = '    - pip install -r requirements.txt'
+    PipInstallEditableCommand = '    - pip install -e .'
+    GoModDownloadCommand = '    - go mod download'
+    GoBuildCommand = '    - go build'
+    MvnCleanInstallCommand = '    - mvn clean install'
+    GradlewBuildCommand = '    - ./gradlew build'
+    CargoBuildCommand = '    - cargo build'
+    DotnetRestoreCommand = '    - dotnet restore'
+    DotnetBuildCommand = '    - dotnet build'
+    CMakeGenerateCommand = '    - cmake -B build'
+    CMakeBuildCommand = '    - cmake --build build'
+    MakeCommand = '    - make'
+    AnalysisSummaryTitle = "=== Résumé de l'analyse ==="
+    ServersAnalyzed = 'Serveurs MCP analysés avec succès : {0}'
+    ServersSkipped = 'Serveurs MCP ignorés : {0}'
+    ServersFailed = 'Serveurs MCP avec erreurs : {0}'
+    DetailedLogSaved = 'Analyse détaillée enregistrée dans : {0}'
+    LogSaved = 'Journal des opérations enregistré dans : {0}'
+    ServersToUpdateTitle = 'Serveurs MCP pouvant être mis à jour ({0}) :'
+    ServerUpdateInfo = '  - {0} ({1} commits en retard)'
+    UpdatePrompt = 'Voulez-vous mettre à jour ces serveurs MCP ? (O/N)'
+    UpdateSummaryTitle = '=== Résumé de la mise à jour ==='
+    ServersUpdated = 'Serveurs MCP mis à jour avec succès : {0}'
+    ServersUpdateFailed = 'Serveurs MCP avec erreurs de mise à jour : {0}'
+    RestartRequired = 'Pour appliquer les modifications, veuillez redémarrer Claude Desktop.'
+    UpdateCanceled = 'Mise à jour annulée.'
+    AllServersUpToDate = 'Tous les serveurs MCP sont à jour. Aucune mise à jour nécessaire.'
+    StartingUpdater = '=== Démarrage de MCP Server Updater ==='
+    UpdaterCompleted = '=== MCP Server Updater Terminé ==='
+    PressAnyKey = 'Appuyez sur une touche pour quitter...'
+    EmptyStringErrorIgnored = 'Erreur de chaîne vide détectée et ignorée.'
+    UnexpectedError = "Une erreur inattendue s'est produite : {0}"
+}
