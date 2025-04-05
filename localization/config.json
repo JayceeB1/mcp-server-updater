@@ -1,0 +1,16 @@
+{
+  "supportedLanguages": ["en", "fr"],
+  "defaultLanguage": "en",
+  "translations": {
+    "en": {
+      "name": "English",
+      "scriptPath": "../Update-MCP-Servers.ps1",
+      "dateFormat": "MM/dd/yyyy"
+    },
+    "fr": {
+      "name": "Français",
+      "scriptPath": "fr/Update-MCP-Servers.ps1",
+      "dateFormat": "dd/MM/yyyy"
+    }
+  }
+}
