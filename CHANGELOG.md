@@ -18,3 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localization support with English and French languages
 - Command line arguments for update mode and language selection
 - Comprehensive documentation in README files
+
+
+### Changed
+- Scripts (`Update-MCP-Servers.ps1` and `localization/fr/Update-MCP-Servers.ps1`) now automatically create the log directory and files if they are missing.
+- Fixed a syntax error in log messages within both scripts.
