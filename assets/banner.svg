@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1200" height="300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3C72;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2A5298;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="300" fill="url(#bg-gradient)" rx="15" ry="15" />
+  
+  <!-- Connected dots pattern -->
+  <g opacity="0.2" fill="white">
+    <circle cx="200" cy="80" r="5" />
+    <circle cx="300" cy="150" r="5" />
+    <circle cx="400" cy="90" r="5" />
+    <circle cx="500" cy="200" r="5" />
+    <circle cx="600" cy="70" r="5" />
+    <circle cx="700" cy="180" r="5" />
+    <circle cx="800" cy="100" r="5" />
+    <circle cx="900" cy="220" r="5" />
+    <circle cx="1000" cy="130" r="5" />
+    
+    <!-- Connection lines -->
+    <line x1="200" y1="80" x2="300" y2="150" stroke="white" stroke-width="1.5" />
+    <line x1="300" y1="150" x2="400" y2="90" stroke="white" stroke-width="1.5" />
+    <line x1="400" y1="90" x2="500" y2="200" stroke="white" stroke-width="1.5" />
+    <line x1="500" y1="200" x2="600" y2="70" stroke="white" stroke-width="1.5" />
+    <line x1="600" y1="70" x2="700" y2="180" stroke="white" stroke-width="1.5" />
+    <line x1="700" y1="180" x2="800" y2="100" stroke="white" stroke-width="1.5" />
+    <line x1="800" y1="100" x2="900" y2="220" stroke="white" stroke-width="1.5" />
+    <line x1="900" y1="220" x2="1000" y2="130" stroke="white" stroke-width="1.5" />
+  </g>
+  
+  <!-- Main text -->
+  <text x="600" y="130" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="white" text-anchor="middle">MCP Server Updater</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="190" font-family="Arial, sans-serif" font-size="25" fill="white" text-anchor="middle">Analyze and update Model Context Protocol servers with ease</text>
+  
+  <!-- Version badge -->
+  <g transform="translate(970, 50)">
+    <rect x="0" y="0" width="180" height="40" rx="20" ry="20" fill="white" opacity="0.9" />
+    <text x="90" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2A5298" text-anchor="middle">v1.0.0</text>
+  </g>
+  
+  <!-- Refresh icon -->
+  <g transform="translate(100, 150)">
+    <circle cx="0" cy="0" r="60" fill="white" opacity="0.2" />
+    <path d="M-25,-10 A40,40 0 1,1 -25,10 L-15,0 L-25,-10 Z" fill="white" />
+    <path d="M25,10 A40,40 0 1,1 25,-10 L15,0 L25,10 Z" fill="white" />
+  </g>
+</svg>
