@@ -43,7 +43,7 @@
   <!-- Version badge -->
   <g transform="translate(970, 50)">
     <rect x="0" y="0" width="180" height="40" rx="20" ry="20" fill="white" opacity="0.9" />
-    <text x="90" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2A5298" text-anchor="middle">v1.0.0</text>
+    <text x="90" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2A5298" text-anchor="middle">v1.1.0</text>
   </g>
   
   <!-- Refresh icon -->
