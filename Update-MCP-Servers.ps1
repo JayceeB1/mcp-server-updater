@@ -16,7 +16,6 @@ param (
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 
-
 # --- Localization Setup ---
 # Initialize $LocalizedStrings to $null to handle cases where loading fails
 $LocalizedStrings = $null
